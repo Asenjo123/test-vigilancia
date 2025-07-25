@@ -82,8 +82,7 @@
   </style>
 </head>
 <body>
-
-  <h1>Test Psico-Vigilancia Motora</h1>
+ <h1>Test Psico-Vigilancia Motora</h1>
   <p>Este test mide tu capacidad de reacción como indicador de fatiga. Al ver el círculo ponerse verde, haz clic lo más rápido posible. El test durará 60 segundos. Si el resultado no es satisfactorio, se activará una encuesta adicional para evaluar tu nivel de somnolencia.</p>
 
   <form id="user-form">
@@ -296,8 +295,8 @@
       `;
     });
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('service-worker.js').then(function(registration) {
+  navigator.serviceWorker.register('/test-vigilancia/service-worker.js', { scope: '/test-vigilancia/' });
+}
       console.log('Service Worker registrado con éxito:', registration.scope);
     }, function(err) {
       console.log('Error al registrar Service Worker:', err);
