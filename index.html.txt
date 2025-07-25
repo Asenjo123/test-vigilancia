@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es">
+<link rel="manifest" href="manifest.json" />
+<head>
+  <meta charset="UTF-8" />
+  <title>Test Psico-Vigilancia Motora</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f2f2f2;
+      padding: 20px;
+    }
+    #test-area, #ess-form {
+      margin-top: 20px;
+      display: none;
+    }
+    #start-btn, #reaction-box, #reset-btn, #screenshot-btn, #ess-submit-btn {
+      margin-top: 20px;
+      padding: 20px;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    #reaction-box {
+      display: inline-block;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background-color: grey;
+      color: white;
+      font-size: 24px;
+      line-height: 220px;
+      user-select: none;
+      border: 4px solid #ccc;
+      transition: background-color 0.3s ease;
+    }
+    #reaction-box.ready {
+      background-color: #28a745;
+    }
+    #result {
+      margin-top: 20px;
+      font-size: 20px;
+      font-weight: bold;
+      min-height: 120px;
+    }
+    #reset-btn, #screenshot-btn {
+      display: none;
+      background-color: #2196F3;
+      color: white;
+    }
+    #ess-submit-btn {
+      background-color: #2196F3;
+      color: white;
+      padding: 15px 30px;
+      font-size: 20px;
+      border-radius: 10px;
+      transition: background-color 0.3s ease;
+    }
+    #ess-submit-btn:hover {
+      background-color: #0b7dda;
+    }
+    .ess-question {
+      margin: 10px 0;
+      text-align: left;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    #ess-result {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    #timer {
+      font-size: 48px;
+      margin-top: 15px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Test Psico-Vigilancia Motora</h1>
+  <p>Este test mide tu capacidad de reacción como indicador de fatiga. Al ver el círculo ponerse verde, haz clic lo más rápido posible. El test durará 60 segundos. Si el resultado no es satisfactorio, se activará una encuesta adicional para evaluar tu nivel de somnolencia.</p>
+
+  <form id="user-form">
+    <input type="text" id="nombre" placeholder="Nombre del conductor" required />
+    <br /><br />
+    <input type="text" id="rut" placeholder="RUT del conductor (Formato chileno)" required />
+    <br /><br />
+    <button type="submit" id="start-btn">Iniciar Test</button>
+  </form>
+
+  <div id="test-area">
+    <div id="reaction-box">Haz clic cuando el círculo esté verde</div>
+    <div id="timer">60</div>
+    <div id="result"></div>
+    <button id="reset-btn">Reiniciar Test</button>
+    <button id="screenshot-btn">Capturar Pantalla</button>
+  </div>
+
+  <div id="ess-form">
+    <h2>Encuesta de Somnolencia de Epworth</h2>
+    <p>Conteste cada pregunta del 0 (nunca se dormiría) al 3 (alta probabilidad de dormirse). Luego presione "Enviar Encuesta".</p>
+    <form id="ess-questions">
+      <div class="ess-question">1. Sentado y leyendo:<br /><input type="number" name="q1" min="0" max="3" required /></div>
+      <div class="ess-question">2. Mirando TV:<br /><input type="number" name="q2" min="0" max="3" required /></div>
+      <div class="ess-question">3. Sentado en un lugar público:<br /><input type="number" name="q3" min="0" max="3" required /></div>
+      <div class="ess-question">4. Pasajero en auto 1 hora:<br /><input type="number" name="q4" min="0" max="3" required /></div>
+      <div class="ess-question">5. Acostado por la tarde:<br /><input type="number" name="q5" min="0" max="3" required /></div>
+      <div class="ess-question">6. Conversando con alguien:<br /><input type="number" name="q6" min="0" max="3" required /></div>
+      <div class="ess-question">7. Sentado tras almuerzo:<br /><input type="number" name="q7" min="0" max="3" required /></div>
+      <div class="ess-question">8. Detenido en tráfico:<br /><input type="number" name="q8" min="0" max="3" required /></div>
+      <button type="submit" id="ess-submit-btn">Enviar Encuesta</button>
+    </form>
+    <div id="ess-result"></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <script>
+    const form = document.getElementById('user-form');
+    const testArea = document.getElementById('test-area');
+    const reactionBox = document.getElementById('reaction-box');
+    const timerDisplay = document.getElementById('timer');
+    const result = document.getElementById('result');
+    const resetBtn = document.getElementById('reset-btn');
+    const screenshotBtn = document.getElementById('screenshot-btn');
+    const essForm = document.getElementById('ess-form');
+    const essQuestions = document.getElementById('ess-questions');
+    const essResult = document.getElementById('ess-result');
+
+    let reactionStartTime;
+    let reactionTimes = [];
+    let testActive = false;
+    let testTimeout;
+    let countdownInterval;
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      form.style.display = 'none';
+      testArea.style.display = 'block';
+      startTest();
+    });
+
+    function startTest() {
+      testActive = true;
+      result.textContent = '';
+      reactionTimes = [];
+      essForm.style.display = 'none';
+      essResult.innerHTML = '';
+      timerDisplay.textContent = '60';
+
+      const testDuration = 60000; // 60 segundos
+      const endTime = Date.now() + testDuration;
+
+      // Actualizar contador cada segundo
+      countdownInterval = setInterval(() => {
+        const timeLeft = Math.max(0, Math.round((endTime - Date.now()) / 1000));
+        timerDisplay.textContent = timeLeft;
+        if (timeLeft <= 0) {
+          clearInterval(countdownInterval);
+        }
+      }, 1000);
+
+      function waitAndActivate() {
+        if (!testActive || Date.now() >= endTime) {
+          endTest();
+          return;
+        }
+
+        reactionBox.textContent = 'Espera...';
+        reactionBox.classList.remove('ready');
+
+        const delay = Math.random() * 3000 + 2000; // entre 2 y 5 segundos
+        testTimeout = setTimeout(() => {
+          if (!testActive || Date.now() >= endTime) {
+            endTest();
+            return;
+          }
+          reactionBox.classList.add('ready');
+          reactionBox.textContent = '¡Haz clic!';
+          reactionStartTime = Date.now();
+        }, delay);
+      }
+
+      reactionBox.onclick = () => {
+        if (!testActive) return;
+
+        if (reactionBox.classList.contains('ready')) {
+          const reactionTime = Date.now() - reactionStartTime;
+          reactionTimes.push(reactionTime);
+          reactionBox.classList.remove('ready');
+          reactionBox.textContent = 'Bien... espera otra vez';
+          waitAndActivate();
+        }
+      };
+
+      waitAndActivate();
+    }
+
+    function endTest() {
+      testActive = false;
+      clearTimeout(testTimeout);
+      clearInterval(countdownInterval);
+      reactionBox.onclick = null;
+      timerDisplay.textContent = '';
+
+      if (reactionTimes.length === 0) {
+        result.textContent = 'No se detectaron respuestas válidas.';
+        return;
+      }
+
+      const avg = reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length;
+      const nombre = document.getElementById('nombre').value;
+      const rut = document.getElementById('rut').value;
+      let nivel = '';
+      let mensaje = '';
+
+      if (avg <= 500) {
+        nivel = 'Nivel 1 - Apto';
+        mensaje = 'Puedes conducir normalmente.';
+      } else if (avg <= 650) {
+        nivel = 'Nivel 2 - Riesgo Moderado';
+        mensaje = 'Descansar por 15 minutos y volver a hacer el test.';
+      } else {
+        nivel = 'Nivel 3 - Riesgo Alto';
+        mensaje = 'Descansar por 5 horas y volver a hacer el test.';
+      }
+
+      result.innerHTML = `
+        <p><strong>Nombre:</strong> ${nombre}</p>
+        <p><strong>RUT:</strong> ${rut}</p>
+        <p><strong>Promedio de reacción:</strong> ${Math.round(avg)} ms</p>
+        <p><strong>Evaluación:</strong> ${nivel}</p>
+        <p><strong>Mensaje:</strong> ${mensaje}</p>
+      `;
+
+      resetBtn.style.display = 'inline-block';
+      screenshotBtn.style.display = 'inline-block';
+
+      if (avg > 650) {
+        essForm.style.display = 'block';
+      }
+    }
+
+    resetBtn.addEventListener('click', () => {
+      testActive = false;
+      clearTimeout(testTimeout);
+      clearInterval(countdownInterval);
+      form.reset();
+      reactionBox.textContent = 'Haz clic cuando el círculo esté verde';
+      reactionBox.classList.remove('ready');
+      result.textContent = '';
+      essForm.style.display = 'none';
+      essResult.innerHTML = '';
+      resetBtn.style.display = 'none';
+      screenshotBtn.style.display = 'none';
+      timerDisplay.textContent = '';
+      testArea.style.display = 'none';
+      form.style.display = 'block';
+    });
+
+    screenshotBtn.addEventListener('click', () => {
+      html2canvas(document.body).then((canvas) => {
+        const link = document.createElement('a');
+        link.download = 'captura_test.png';
+        link.href = canvas.toDataURL();
+        link.click();
+      });
+    });
+
+    essQuestions.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const data = new FormData(essQuestions);
+      let total = 0;
+      for (let value of data.values()) {
+        total += parseInt(value);
+      }
+
+      let interpretacion = '';
+      if (total <= 6) {
+        interpretacion = 'Nivel bajo de somnolencia.';
+      } else if (total <= 10) {
+        interpretacion = 'Nivel moderado de somnolencia.';
+      } else {
+        interpretacion = 'Alto nivel de somnolencia. Se recomienda descansar.';
+      }
+
+      essResult.innerHTML = `
+        <p><strong>Puntaje Total:</strong> ${total}</p>
+        <p><strong>Interpretación:</strong> ${interpretacion}</p>
+      `;
+    });
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('service-worker.js').then(function(registration) {
+      console.log('Service Worker registrado con éxito:', registration.scope);
+    }, function(err) {
+      console.log('Error al registrar Service Worker:', err);
+    });
+  });
+}
+</script>
+</body>
+</html>
