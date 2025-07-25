@@ -1,11 +1,10 @@
 {
-  "name": "Test de Psico-Vigilancia Motora",
-  "short_name": "Test Psico",
-  "description": "Evaluación de fatiga para conductores",
-  "start_url": "/test-vigilancia/index.html",
+  "name": "Test Psico-Vigilancia Motora",
+  "short_name": "Vigilancia",
+  "start_url": "/test-vigilancia/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#4CAF50",
+  "background_color": "#f2f2f2",
+  "theme_color": "#2196F3",
   "icons": [
     {
       "src": "icon-192.png",
