@@ -1,9 +1,9 @@
 {
   "name": "Test Psico-Vigilancia Motora",
   "short_name": "Vigilancia",
-  "start_url": "/test-vigilancia/",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f2f2f2",
+  "background_color": "#ffffff",
   "theme_color": "#2196F3",
   "icons": [
     {
